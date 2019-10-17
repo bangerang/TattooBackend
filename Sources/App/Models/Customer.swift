@@ -11,6 +11,7 @@ import FluentPostgreSQL
 
 struct Customer: Codable {
 	var id: UUID?
+	var email: String
 }
 
 extension Customer: PostgreSQLUUIDModel {}

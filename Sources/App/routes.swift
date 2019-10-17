@@ -8,4 +8,7 @@ public func routes(_ router: Router) throws {
 	
 	let tattooArtistSettingsController = ArtistSettingsController()
 	try router.register(collection: tattooArtistSettingsController)
+	
+	let customerController = CustomerController()
+	try router.register(collection: customerController)
 }

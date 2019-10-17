@@ -37,7 +37,7 @@ class TattoSettingsTests: XCTestCase {
 		try! Application.reset()
 		app = try! Application.testable()
 		conn = try! app.newConnection(to: .psql).wait()
-		artist = try! Artist.create(artist: artistStub, on: conn)
+		artist = try! Artist.create(model: artistStub, on: conn)
 		settings = try! ArtistSettings.create(tattooArtistID: artist.id!, settings: settingsStub, on: conn)
 	}
 	override func tearDown() {
