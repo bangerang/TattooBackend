@@ -30,15 +30,15 @@ class TattoSettingsTests: XCTestCase {
 	var conn: PostgreSQLConnection!
 	let settingsURI = "/api/artists/settings/"
 
-	var artist: TattooArtist!
-	var settings: TattooArtistSettings!
+	var artist: Artist!
+	var settings: ArtistSettings!
 	
 	override func setUp() {
 		try! Application.reset()
 		app = try! Application.testable()
 		conn = try! app.newConnection(to: .psql).wait()
-		artist = try! TattooArtist.create(artist: artistStub, on: conn)
-		settings = try! TattooArtistSettings.create(tattooArtistID: artist.id!, settings: settingsStub, on: conn)
+		artist = try! Artist.create(artist: artistStub, on: conn)
+		settings = try! ArtistSettings.create(tattooArtistID: artist.id!, settings: settingsStub, on: conn)
 	}
 	override func tearDown() {
 	  conn.close()
@@ -47,10 +47,10 @@ class TattoSettingsTests: XCTestCase {
 	
 	func testTattoArtistSettingsCanBeRetrievedByAPI() throws {
 		
-		let receivedSettings = try app.getResponse(to: settingsURI, decodeTo: [TattooArtistSettings].self)
+		let receivedSettings = try app.getResponse(to: settingsURI, decodeTo: [ArtistSettings].self)
 		
 		XCTAssert(receivedSettings.count == 1)
-		XCTAssert(receivedSettings[0].tattooArtistID == artist.id!)
+		XCTAssert(receivedSettings[0].artistID == artist.id!)
 		XCTAssert(receivedSettings[0].settings == settingsStub)
 		
 	}
@@ -62,25 +62,25 @@ class TattoSettingsTests: XCTestCase {
 		  method: .POST,
 		  headers: ["Content-Type": "application/json"],
 		  data: settings,
-		  decodeTo: TattooArtistSettings.self)
+		  decodeTo: ArtistSettings.self)
 		
 		XCTAssertEqual(receivedSettings.settings, settings.settings)
-		XCTAssertEqual(receivedSettings.tattooArtistID, settings.tattooArtistID)
+		XCTAssertEqual(receivedSettings.artistID, settings.artistID)
 		XCTAssertNotNil(receivedSettings.id)
 		
-		let allSettings = try app.getResponse(to: settingsURI, decodeTo: [TattooArtistSettings].self)
+		let allSettings = try app.getResponse(to: settingsURI, decodeTo: [ArtistSettings].self)
 		
 		XCTAssert(allSettings.count == 1)
-		XCTAssert(allSettings[0].tattooArtistID == artist.id!)
+		XCTAssert(allSettings[0].artistID == artist.id!)
 		XCTAssert(allSettings[0].settings == settingsStub)
     }
 	
 	func testGettingASingleArtistSettingFromAPI() throws {
 		
-		let receivedSettings = try app.getResponse(to: "\(settingsURI)\(settings.id!)", decodeTo: TattooArtistSettings.self)
+		let receivedSettings = try app.getResponse(to: "\(settingsURI)\(settings.id!)", decodeTo: ArtistSettings.self)
 		
 		XCTAssertEqual(receivedSettings.settings, settings.settings)
-		XCTAssertEqual(receivedSettings.tattooArtistID, settings.tattooArtistID)
+		XCTAssertEqual(receivedSettings.artistID, settings.artistID)
 		XCTAssertNotNil(receivedSettings.id)
 		
 	}

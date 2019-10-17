@@ -11,14 +11,14 @@ import Foundation
 import Vapor
 import FluentPostgreSQL
 
-enum TattooPropertySetting: Codable {
+enum ArtistPropertySetting: Codable {
 	
 	case position([String])
 	case size([String])
 	case image(data: File)
 	case color(hasColor: Bool)
 }
-extension TattooPropertySetting {
+extension ArtistPropertySetting {
 
     private enum CodingKeys: String, CodingKey {
 		case position
@@ -66,8 +66,8 @@ extension TattooPropertySetting {
 		}
     }
 }
-extension TattooPropertySetting: Equatable {
-	static func == (lhs: TattooPropertySetting, rhs: TattooPropertySetting) -> Bool {
+extension ArtistPropertySetting: Equatable {
+	static func == (lhs: ArtistPropertySetting, rhs: ArtistPropertySetting) -> Bool {
 		switch (lhs, rhs) {
 		case (.color(let color1), .color(let color2)):
 			return color1 == color2
@@ -84,13 +84,13 @@ extension TattooPropertySetting: Equatable {
 	}
 }
 
-struct TattooArtistSettings: Codable {
+struct ArtistSettings: Codable {
 	var id: UUID?
-	var tattooArtistID: TattooArtist.ID
-	var settings: [TattooPropertySetting]
+	var artistID: Artist.ID
+	var settings: [ArtistPropertySetting]
 }
 
-extension TattooArtistSettings: PostgreSQLUUIDModel {}
-extension TattooArtistSettings: Content {}
-extension TattooArtistSettings: Migration {}
-extension TattooArtistSettings: Parameter {}
+extension ArtistSettings: PostgreSQLUUIDModel {}
+extension ArtistSettings: Content {}
+extension ArtistSettings: Migration {}
+extension ArtistSettings: Parameter {}

@@ -8,15 +8,15 @@
 @testable import App
 import FluentPostgreSQL
 
-extension TattooArtist {
-	static func create(artist: TattooArtist, on connection: PostgreSQLConnection) throws -> TattooArtist {
-		let tattooArtist = TattooArtist(name: artist.name, username: artist.username, email: artist.email, password: artist.password)
+extension Artist {
+	static func create(artist: Artist, on connection: PostgreSQLConnection) throws -> Artist {
+		let tattooArtist = Artist(name: artist.name, username: artist.username, email: artist.email, password: artist.password)
 		return try tattooArtist.save(on: connection).wait()
 	}
 }
-extension TattooArtistSettings {
-	static func create(tattooArtistID: TattooArtist.ID, settings: [TattooPropertySetting] = [.position(["Elbow", "Hand", "Leg"])], on connection: PostgreSQLConnection) throws -> TattooArtistSettings {
-		let setting = TattooArtistSettings(tattooArtistID: tattooArtistID, settings: settings)
+extension ArtistSettings {
+	static func create(tattooArtistID: Artist.ID, settings: [ArtistPropertySetting] = [.position(["Elbow", "Hand", "Leg"])], on connection: PostgreSQLConnection) throws -> ArtistSettings {
+		let setting = ArtistSettings(artistID: tattooArtistID, settings: settings)
 		return try setting.save(on: connection).wait()
 	}
 //	init(tattooArtistID: TattooArtist.ID, settings: [Settings])
