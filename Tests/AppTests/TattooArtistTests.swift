@@ -16,73 +16,59 @@ let settingsStub: [ArtistPropertySetting] = [.position(["Elbow", "Arm", "Leg"]),
 											 .color(hasColor: true),
 											 .image(data: File(data: FileMock(),
 															   filename: "Foo"))]
-class TattooArtistTests: XCTestCase {
-	
-	var app: Application!
-	var conn: PostgreSQLConnection!
-	let tattooURI = "/api/artists/"
 
-	var artist: Artist!
-	var settings: ArtistSettings!
+class TattooArtistTests: ModelTests<Artist> {
 	
-	override func setUp() {
-		try! Application.reset()
-		app = try! Application.testable()
-		conn = try! app.newConnection(to: .psql).wait()
-		artist = try! Artist.create(model: artistStub, on: conn)
-		settings = try! ArtistSettings.create(tattooArtistID: artist.id!, settings: settingsStub, on: conn)
+	override func getURI() -> String {
+		return "/api/artists/"
+	}
+	override func getModel() -> Artist {
+		return artistStub
 	}
 	
-	override func tearDown() {
-		conn.close()
-		try? app.syncShutdownGracefully()
+	override func didRecieveModel(_ model: Artist, testCase: TestCase) {
+		switch testCase {
+		case .saved:
+			XCTAssertEqual(model.email, artistStub.email)
+			XCTAssertEqual(model.username, artistStub.username)
+			XCTAssertNotNil(model.id)
+		case .retrieveOne:
+			XCTAssertEqual(model.email, artistStub.email)
+			XCTAssertEqual(model.username, artistStub.username)
+			XCTAssertNotNil(model.id)
+		case .updated:
+			XCTAssertEqual(model.name, "Axel")
+		default:
+			XCTFail()
+		}
 	}
 	
-	func testTattoArtistCanBeRetrievedByAPI() throws {
-		
-		let receivedArtists = try app.getResponse(to: tattooURI, decodeTo: [Artist].self)
-		
-		XCTAssert(receivedArtists.count == 1)
-		XCTAssert(receivedArtists[0].email == artist.email)
-		XCTAssert(receivedArtists[0].username == artist.username)
-		XCTAssert(receivedArtists[0].name == artist.name)
-		
+	override func didRecieveModel(_ models: [Artist], testCase: TestCase) {
+		switch testCase {
+		case .retrieveAll:
+			XCTAssert(models.count == 1)
+			XCTAssert(models[0].email == artistStub.email)
+			XCTAssert(models[0].username == artistStub.username)
+			XCTAssert(models[0].name == artistStub.name)
+		default:
+			XCTFail()
+		}
 	}
-
-    func testTattooArtistCanBeSavedbyAPI() throws {
-		
-		let receivedArtist = try app.getResponse(
-		  to: tattooURI,
-		  method: .POST,
-		  headers: ["Content-Type": "application/json"],
-		  data: artist,
-		  decodeTo: Artist.self)
-		
-		XCTAssertEqual(receivedArtist.email, artist.email)
-		XCTAssertEqual(receivedArtist.username, artist.username)
-		XCTAssertNotNil(receivedArtist.id)
-		
-		let allArtists = try app.getResponse(to: tattooURI, decodeTo: [Artist].self)
-		
-		XCTAssert(allArtists.count == 1)
-		XCTAssert(allArtists[0].email == artist.email)
-		XCTAssert(allArtists[0].username == artist.username)
-		XCTAssert(allArtists[0].name == artist.name)
-    }
 	
-	func testGettingASingleArtistSettingFromAPI() throws {
-		
-		let receivedArtist = try app.getResponse(to: "\(tattooURI)\(artist.id!)", decodeTo: Artist.self)
-		
-		XCTAssertEqual(receivedArtist.email, artist.email)
-		XCTAssertEqual(receivedArtist.username, artist.username)
-		XCTAssertNotNil(receivedArtist.id)
-		
+	override func willPerformUpdatenOn(_ model: Artist) -> Artist {
+		var artistToChange = model
+		artistToChange.name = "Axel"
+		return artistToChange
 	}
 	
 	func testGetSettingsFromArtist() throws {
-		let receivedSettings = try app.getResponse(to: "\(tattooURI)\(artist.id!)/settings", decodeTo: [ArtistSettings].self)
 		
+		let artist = try Artist.create(model: artistStub, on: conn)
+		let settingsWithoutID = ArtistSettings(artistID: artist.id!, settings: settingsStub)
+		let settings = try ArtistSettings.create(model: settingsWithoutID, on: conn)
+		
+		let receivedSettings = try app.getResponse(to: "\(getURI())\(artist.id!)/settings", decodeTo: [ArtistSettings].self)
+
 		XCTAssertEqual(receivedSettings[0].settings, settings.settings)
 		XCTAssertEqual(receivedSettings[0].artistID, settings.artistID)
 		XCTAssertNotNil(receivedSettings[0].id)

@@ -12,6 +12,7 @@ extension String: Error {}
 
 class BaseController<C: Content & PostgreSQLUUIDModel & Parameter>: RouteCollection {
 	
+	var route: Router!
 	var domain: [PathComponentsRepresentable]
 	
 	required init(domain: [PathComponentsRepresentable]) {
@@ -20,7 +21,7 @@ class BaseController<C: Content & PostgreSQLUUIDModel & Parameter>: RouteCollect
 	
 	func boot(router: Router) throws {
 		domain.insert("api", at: 0)
-		let route = router.grouped(domain)
+		route = router.grouped(domain)
 		route.post(C.self, use: createHandler)
 		route.get(use: getAllHandler)
 		route.get(C.parameter, use: getHandler)

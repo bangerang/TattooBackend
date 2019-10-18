@@ -2,12 +2,11 @@ import Vapor
 
 /// Register your application's routes here.
 public func routes(_ router: Router) throws {
-	let tattooArtistController = ArtistController()
-	try router.register(collection: tattooArtistController)
+	let artistController = ArtistController(domain: ["artists"])
+	try router.register(collection: artistController)
 	
-	
-	let tattooArtistSettingsController = ArtistSettingsController()
-	try router.register(collection: tattooArtistSettingsController)
+	let artistSettingsController = BaseController<ArtistSettings>(domain: ["artists", "settings"])
+	try router.register(collection: artistSettingsController)
 	
 	let customerController = BaseController<Customer>(domain: ["customers"])
 	try router.register(collection: customerController)

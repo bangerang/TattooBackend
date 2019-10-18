@@ -24,65 +24,53 @@ struct FileMock: LosslessDataConvertible {
 	
 	
 }
-class TattoSettingsTests: XCTestCase {
-
-	var app: Application!
-	var conn: PostgreSQLConnection!
-	let settingsURI = "/api/artists/settings/"
-
-	var artist: Artist!
-	var settings: ArtistSettings!
+class TattoSettingsTests: ModelTests<ArtistSettings> {
 	
-	override func setUp() {
-		try! Application.reset()
-		app = try! Application.testable()
-		conn = try! app.newConnection(to: .psql).wait()
-		artist = try! Artist.create(model: artistStub, on: conn)
-		settings = try! ArtistSettings.create(tattooArtistID: artist.id!, settings: settingsStub, on: conn)
+	let testSettings: [ArtistPropertySetting] = [.color(hasColor: true)]
+
+	lazy var artist: Artist = {
+		return try! Artist.create(model: artistStub, on: conn)
+	}()
+	lazy var settingsMock: ArtistSettings = {
+		return ArtistSettings(artistID: artist.id!, settings: settingsStub)
+	}()
+	override func getURI() -> String {
+		return "/api/artists/settings/"
 	}
-	override func tearDown() {
-	  conn.close()
-	  try? app.syncShutdownGracefully()
+	override func getModel() -> ArtistSettings {
+		return settingsMock
 	}
 	
-	func testTattoArtistSettingsCanBeRetrievedByAPI() throws {
-		
-		let receivedSettings = try app.getResponse(to: settingsURI, decodeTo: [ArtistSettings].self)
-		
-		XCTAssert(receivedSettings.count == 1)
-		XCTAssert(receivedSettings[0].artistID == artist.id!)
-		XCTAssert(receivedSettings[0].settings == settingsStub)
-		
+	override func didRecieveModel(_ model: ArtistSettings, testCase: TestCase) {
+		switch testCase {
+		case .saved:
+			XCTAssertEqual(model.settings, settingsMock.settings)
+			XCTAssertEqual(model.artistID, artist.id!)
+			XCTAssertNotNil(model.id)
+		case .retrieveOne:
+			XCTAssertEqual(model.settings, settingsMock.settings)
+			XCTAssertEqual(model.artistID, artist.id!)
+			XCTAssertNotNil(model.id)
+		case .updated:
+			XCTAssertEqual(model.settings, testSettings)
+		default:
+			XCTFail()
+		}
 	}
-
-    func testTattooArtistSettingsCanBeSavedbyAPI() throws {
-		
-		let receivedSettings = try app.getResponse(
-		  to: settingsURI,
-		  method: .POST,
-		  headers: ["Content-Type": "application/json"],
-		  data: settings,
-		  decodeTo: ArtistSettings.self)
-		
-		XCTAssertEqual(receivedSettings.settings, settings.settings)
-		XCTAssertEqual(receivedSettings.artistID, settings.artistID)
-		XCTAssertNotNil(receivedSettings.id)
-		
-		let allSettings = try app.getResponse(to: settingsURI, decodeTo: [ArtistSettings].self)
-		
-		XCTAssert(allSettings.count == 1)
-		XCTAssert(allSettings[0].artistID == artist.id!)
-		XCTAssert(allSettings[0].settings == settingsStub)
-    }
-	
-	func testGettingASingleArtistSettingFromAPI() throws {
-		
-		let receivedSettings = try app.getResponse(to: "\(settingsURI)\(settings.id!)", decodeTo: ArtistSettings.self)
-		
-		XCTAssertEqual(receivedSettings.settings, settings.settings)
-		XCTAssertEqual(receivedSettings.artistID, settings.artistID)
-		XCTAssertNotNil(receivedSettings.id)
-		
+	override func didRecieveModel(_ models: [ArtistSettings], testCase: TestCase) {
+		switch testCase {
+		case .retrieveAll:
+			XCTAssert(models.count == 1)
+			XCTAssert(models[0].artistID == artist.id!)
+			XCTAssert(models[0].settings == settingsStub)
+		default:
+			XCTFail()
+		}
+	}
+	override func willPerformUpdatenOn(_ model: ArtistSettings) -> ArtistSettings {
+		var settingsToUpdate = model
+		settingsToUpdate.settings = testSettings
+		return settingsToUpdate
 	}
 
 }
