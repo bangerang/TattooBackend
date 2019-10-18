@@ -46,6 +46,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
 	migrations.add(model: Artist.self, database: .psql)
 	migrations.add(model: ArtistSettings.self, database: .psql)
 	migrations.add(model: Customer.self, database: .psql)
+	migrations.add(model: Booking.self, database: .psql)
 
 	services.register(migrations)
 	

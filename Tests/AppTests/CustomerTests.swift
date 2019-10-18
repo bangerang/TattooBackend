@@ -11,62 +11,41 @@ import XCTest
 import FluentPostgreSQL
 
 let customerStub = Customer(email: "foo@hotmail.com")
-class CustomerTests: XCTestCase {
 
-	var app: Application!
-	var conn: PostgreSQLConnection!
-	let customersURI = "/api/customers/"
-	var test = ModelTests()
-
-	var customer: Customer!
+class CustomerTests: ModelTests<Customer> {	
 	
-	override func setUp() {
-		try! Application.reset()
-		app = try! Application.testable()
-		conn = try! app.newConnection(to: .psql).wait()
-		customer = try! Customer.create(model: customerStub, on: conn)
-		test.invokeTest()
+	override func getURI() -> String {
+		return "/api/customers/"
 	}
-	
-	override func tearDown() {
-		conn.close()
-		try? app.syncShutdownGracefully()
+	override func getModel() -> Customer {
+		return customerStub
 	}
-	
-	func testCustomertCanBeRetrievedByAPI() throws {
-		
-		let receivedCustomers = try app.getResponse(to: customersURI, decodeTo: [Customer].self)
-		
-		XCTAssert(receivedCustomers.count == 1)
-		XCTAssert(receivedCustomers[0].email == customer.email)
-		
+	override func didRecieveModel(_ model: Customer, testCase: TestCase) {
+		switch testCase {
+		case .saved:
+			XCTAssertEqual(model.email, customerStub.email)
+			XCTAssertNotNil(model.id)
+		case .retrieveOne:
+			XCTAssertEqual(model.email, customerStub.email)
+			XCTAssertNotNil(model.id)
+		case .updated:
+			XCTAssertEqual(model.email, "bar@hotmail.com")
+		default:
+			XCTFail()
+		}
 	}
-
-    func testTattooArtistCanBeSavedbyAPI() throws {
-		
-		let receivedCustomer = try app.getResponse(
-		  to: customersURI,
-		  method: .POST,
-		  headers: ["Content-Type": "application/json"],
-		  data: customer,
-		  decodeTo: Customer.self)
-		
-		XCTAssertEqual(receivedCustomer.email, customer.email)
-		XCTAssertNotNil(receivedCustomer.id)
-		
-		let allCustomers = try app.getResponse(to: customersURI, decodeTo: [Customer].self)
-		
-		XCTAssert(allCustomers.count == 1)
-		XCTAssert(allCustomers[0].email == customer.email)
-    }
-	
-	func testGettingASingleArtistSettingFromAPI() throws {
-		
-		let receivedCustomer = try app.getResponse(to: "\(customersURI)\(customer.id!)", decodeTo: Customer.self)
-		
-		XCTAssertEqual(receivedCustomer.email, customer.email)
-		XCTAssertNotNil(receivedCustomer.id)
-		
+	override func didRecieveModel(_ models: [Customer], testCase: TestCase) {
+		switch testCase {
+		case .retrieveAll:
+			XCTAssert(models.count == 1)
+			XCTAssert(models[0].email == customerStub.email)
+		default:
+			XCTFail()
+		}
 	}
-	
+	override func willPerformUpdatenOn(_ model: Customer) -> Customer {
+		var customerToUpdate = model
+		customerToUpdate.email = "bar@hotmail.com"
+		return customerToUpdate
+	}
 }
