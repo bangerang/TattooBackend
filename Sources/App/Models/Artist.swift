@@ -27,4 +27,10 @@ extension Artist {
 	var settings: Children<Artist, ArtistSettings> {
 		return children(\.artistID)
 	}
+	var timeslots: Children<Artist, Timeslot> {
+		return children(\.artistID)
+	}
+	var workplace: Children<Artist, Workplace> {
+		return children(\.artistID)
+	}
 }

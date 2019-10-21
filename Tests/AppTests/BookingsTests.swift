@@ -24,7 +24,7 @@ class BookingsTests: ModelTests<Booking> {
 	
 	
 	lazy var bookingStub: Booking = {
-		let booking = Booking(pickedSettings: settingsStub, artistID: artist.id!, customerID: customer.id!, state: .initial(true))
+		let booking = Booking(pickedSettings: settingsStub, state: .initial(true), artistID: artist.id!, customerID: customer.id!)
 		return booking
 	}()
 	

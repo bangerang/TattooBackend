@@ -58,10 +58,11 @@ extension BookingStatus {
 struct Booking: Codable {
 
 	var id: UUID?
-	private(set) var pickedSettings: [ArtistPropertySetting]
+	var pickedSettings: [ArtistPropertySetting]
+	var state: BookingStatus
+	var timeSlotID: Timeslot.ID?
 	private(set) var artistID: Artist.ID
 	private(set) var customerID: Customer.ID
-	var state: BookingStatus
 }
 
 extension Booking: PostgreSQLUUIDModel {}

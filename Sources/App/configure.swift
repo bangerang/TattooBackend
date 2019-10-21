@@ -23,6 +23,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
 	let databaseName: String
 	let databasePort: Int
 	// 1
+	
 	if (env == .testing) {
 		databaseName = "tattootest"
 		databasePort = 5432
@@ -47,9 +48,16 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
 	migrations.add(model: ArtistSettings.self, database: .psql)
 	migrations.add(model: Customer.self, database: .psql)
 	migrations.add(model: Booking.self, database: .psql)
+	migrations.add(model: Timeslot.self, database: .psql)
+	migrations.add(model: Workplace.self, database: .psql)
 
 	services.register(migrations)
 	
+	let calenderService = CalenderService()
+	services.register(calenderService)
+	
+	let calenderProvider = CalenderProviderMock()
+	services.register(calenderProvider, as: CalenderProvider.self)
 	
 	var commandConfig = CommandConfig.default()
 	commandConfig.useFluentCommands()

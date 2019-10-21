@@ -10,7 +10,7 @@ import FluentPostgreSQL
 
 extension String: Error {}
 
-class BaseController<C: Content & PostgreSQLUUIDModel & Parameter>: RouteCollection {
+class BaseModelController<C: Content & PostgreSQLUUIDModel & Parameter>: RouteCollection {
 	
 	var route: Router!
 	var domain: [PathComponentsRepresentable]
