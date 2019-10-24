@@ -10,6 +10,10 @@ import Vapor
 struct ClosedDateRange {
 	let startDate: Date
 	let endDate: Date
+	
+	func contains(_ dateRange: ClosedDateRange) -> Bool {
+		return dateRange.startDate.isBetweenDates(beginDate: startDate, endDate: endDate) || dateRange.endDate.isBetweenDates(beginDate: startDate, endDate: endDate)
+	}
 }
 extension ClosedDateRange: Content {}
 
@@ -23,6 +27,10 @@ class ArtistController: BaseModelController<Artist> {
 		timeslots.get(use: getTimeslotsHandler)
 		let calender = route.grouped(Artist.parameter, "calender", Timeslot.parameter)
 		calender.get(use: getAvailableEventsHandler)
+		let tattooSizes = route.grouped(Artist.parameter, "tattoo-sizes")
+		tattooSizes.get(use: getAvailableTattooSizesHandler)
+		let bookings = route.grouped(Artist.parameter, "bookings")
+		bookings.get(use: getBookingsHandler)
 	}
 	
 	func getSettingsHandler(_ req: Request) throws -> Future<[ArtistSettings]> {
@@ -49,4 +57,15 @@ class ArtistController: BaseModelController<Artist> {
 		}
 	}
 	
+	func getAvailableTattooSizesHandler(_ req: Request) throws -> Future<[TattooSize]> {
+		return try req.parameters.next(Artist.self).flatMap(to: [TattooSize].self) { artist in
+			try artist.tattooSizes.query(on: req).all()
+		}
+	}
+	
+	func getBookingsHandler(_ req: Request) throws -> Future<[Booking]> {
+		return try req.parameters.next(Artist.self).flatMap(to: [Booking].self) { artist in
+			try artist.bookings.query(on: req).all()
+		}
+	}
 }

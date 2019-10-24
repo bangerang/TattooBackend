@@ -11,7 +11,7 @@ import XCTest
 import FluentPostgreSQL
 
 class BookingsTests: ModelTests<Booking> {
-
+	
 	let testDate = Date()
 	
 	lazy var artist: Artist = {
@@ -24,9 +24,17 @@ class BookingsTests: ModelTests<Booking> {
 	
 	
 	lazy var bookingStub: Booking = {
-		let booking = Booking(pickedSettings: settingsStub, state: .initial(true), artistID: artist.id!, customerID: customer.id!)
-		return booking
+		return Booking(pickedSettings: settingsStub, state: .initial, artistID: artist.id!, customerID: customer.id!)
 	}()
+	
+	var mockData: (artist: Artist, customer: Customer, timeslot: Timeslot, booking: Booking) {
+		let artist = try! Artist.create(model: artistStub, on: conn)
+		let customer = try! Customer.create(model: customerStub, on: conn)
+		let timeslot = try! Timeslot.create(model: Timeslot(artistID: artist.id!, title: "Foo", timeInMinutes: 120), on: conn)
+		let date = Date()
+		let bookingStub1 = Booking(pickedSettings: settingsStub, state: .booked, timeSlotID: timeslot.id!, startDate: date, artistID: artist.id!, customerID: customer.id!)
+		return (artist, customer, timeslot, bookingStub1)
+	}
 	
 	override func getURI() -> String {
 		return "/api/artists/bookings/"
@@ -47,10 +55,10 @@ class BookingsTests: ModelTests<Booking> {
 			XCTAssertEqual(model.pickedSettings, settingsStub)
 			XCTAssertNotNil(model.id)
 		case .updated:
-			if case let .requested(date) = model.state {
-			let receivedDateTimeInterval = date.timeIntervalSinceReferenceDate
-			let expectedDateTimeInterval = testDate.timeIntervalSinceReferenceDate
-			XCTAssertEqual(receivedDateTimeInterval, expectedDateTimeInterval, accuracy: 0.1)
+			if case .requested = model.state {
+				let receivedDateTimeInterval = model.startDate!.timeIntervalSinceReferenceDate
+				let expectedDateTimeInterval = testDate.timeIntervalSinceReferenceDate
+				XCTAssertEqual(receivedDateTimeInterval, expectedDateTimeInterval, accuracy: 1)
 				break
 			}
 			XCTFail()
@@ -71,7 +79,146 @@ class BookingsTests: ModelTests<Booking> {
 	}
 	override func willPerformUpdatenOn(_ model: Booking) -> Booking {
 		var bookingToUpdate = model
-		bookingToUpdate.state = .requested(testDate)
+		bookingToUpdate.state = .requested
+		bookingToUpdate.startDate = testDate
 		return bookingToUpdate
+	}
+	
+	
+	func testMakeSureYouCantBookSameDate() throws {
+		
+		let models = mockData
+		
+		_ = try Booking.create(model: models.booking, on: conn)
+		
+		XCTAssertThrowsError(try app.getResponse(
+			to: getURI(),
+			method: .POST,
+			headers: ["Content-Type": "application/json"],
+			data: models.booking,
+			decodeTo: Booking.self)
+		)
+		
+		let recieved = try app.getResponse(to: "/api/artists/\(models.artist.id!)/bookings", decodeTo: [Booking].self)
+		
+		XCTAssertTrue(recieved.count == 1)
+		
+	}
+	
+	func testMakeSureYouCantBookDateThatEndsWithinAnother() throws {
+		
+		var models = mockData
+		
+		_ = try Booking.create(model: models.booking, on: conn)
+		
+		models.booking.startDate! = models.booking.startDate!.addingTimeInterval(-(60*60))
+		XCTAssertThrowsError(try app.getResponse(
+			to: getURI(),
+			method: .POST,
+			headers: ["Content-Type": "application/json"],
+			data: models.booking,
+			decodeTo: Booking.self)
+		)
+		
+		let recieved = try app.getResponse(to: "/api/artists/\(models.artist.id!)/bookings", decodeTo: [Booking].self)
+		
+		XCTAssertTrue(recieved.count == 1)
+	}
+	
+	func testBookDateAfterMorningBooking() throws {
+		
+		var models = mockData
+		
+		let timeslot = try! Timeslot.create(model: Timeslot(artistID: artist.id!, title: "Foo", timeInMinutes: 120), on: conn)
+		models.booking.timeSlotID = timeslot.id!
+		
+		let workplace = try Workplace.create(model: Workplace(artistID: artist.id!, workDays: workHours, numberOfDaysAllowedForBooking: 365), on: conn)
+		
+		let monday = workplace.workDays.first{$0.day == .monday}!
+		
+		let startDate = Calendar.current.date(bySettingHour: monday.start.hour, minute: monday.start.minute, second: 0, of: Date.nextOccurrenceOfDay(.monday))!
+		
+		models.booking.startDate = startDate
+		
+		_ = try Booking.create(model: models.booking, on: conn)
+		
+		models.booking.startDate! = startDate.addingTimeInterval(TimeInterval(models.timeslot.timeInMinutes * 60))
+		
+		XCTAssertNoThrow(try app.getResponse(
+			to: getURI(),
+			method: .POST,
+			headers: ["Content-Type": "application/json"],
+			data: models.booking,
+			decodeTo: Booking.self)
+		)
+		
+		let recieved = try app.getResponse(to: "/api/artists/\(models.artist.id!)/bookings", decodeTo: [Booking].self)
+		
+		XCTAssertTrue(recieved.count == 2)
+	}
+	
+	func testShouldGetSuggestionAboutEventAfterMorningBooking() throws {
+		
+		var models = mockData
+		
+		let timeslot = try! Timeslot.create(model: Timeslot(artistID: models.artist.id!, title: "Foo", timeInMinutes: 120), on: conn)
+		models.booking.timeSlotID = timeslot.id!
+		
+		let workplace = try Workplace.create(model: Workplace(artistID: models.artist.id!, workDays: workHours, numberOfDaysAllowedForBooking: 365), on: conn)
+		
+		let monday = workplace.workDays.first{$0.day == .monday}!
+		
+		let startDate = Calendar.current.date(bySettingHour: monday.start.hour, minute: monday.start.minute, second: 0, of: Date.nextOccurrenceOfDay(.monday))!
+		
+		let dateToFind = startDate.addingTimeInterval(TimeInterval(models.timeslot.timeInMinutes * 60))
+		
+		models.booking.startDate = startDate
+		
+		_ = try Booking.create(model: models.booking, on: conn)
+		
+		let recieved = try app.getResponse(to: "/api/artists/\(models.artist.id!)/calender/\(timeslot.id!)", decodeTo: [ClosedDateRange].self)
+		
+		let dateRange = recieved.first{ $0.startDate == dateToFind }
+		XCTAssertNotNil(dateRange)
+		XCTAssertEqual(dateToFind.addingTimeInterval(TimeInterval(models.timeslot.timeInMinutes * 60)).timeIntervalSinceReferenceDate, dateRange!.endDate.timeIntervalSinceReferenceDate, accuracy: 1)
+		
+		let dateComponent = Calendar.current.dateComponents([.year, .month, .day], from: dateToFind)
+		XCTAssertTrue(recieved.filter { dateRange -> Bool in
+			let components = Calendar.current.dateComponents([.year, .month, .day], from: dateRange.startDate)
+			return dateComponent == components
+		}.count == 1)
+		
+	}
+	
+	func testShouldGetSuggestionAboutEventBeforeAfternoonBooking() throws {
+		var models = mockData
+		
+		let timeslot = try! Timeslot.create(model: Timeslot(artistID: models.artist.id!, title: "Foo", timeInMinutes: 120), on: conn)
+		models.booking.timeSlotID = timeslot.id!
+		
+		let workplace = try Workplace.create(model: Workplace(artistID: models.artist.id!, workDays: workHours, numberOfDaysAllowedForBooking: 365), on: conn)
+		
+		let monday = workplace.workDays.first{$0.day == .monday}!
+		let start = try monday.end.time(byAddingMinutes: -models.timeslot.timeInMinutes)
+		
+		let startDate = Calendar.current.date(bySettingHour: start.hour, minute: start.minute, second: 0, of: Date.nextOccurrenceOfDay(.monday))!
+		
+		let dateToFind = startDate.addingTimeInterval(-TimeInterval(models.timeslot.timeInMinutes * 60))
+		
+		models.booking.startDate = startDate
+		
+		_ = try Booking.create(model: models.booking, on: conn)
+		
+		let recieved = try app.getResponse(to: "/api/artists/\(models.artist.id!)/calender/\(timeslot.id!)", decodeTo: [ClosedDateRange].self)
+		recieved.forEach{print($0.startDate)}
+		let dateRange = recieved.first{ $0.startDate == dateToFind }
+		XCTAssertNotNil(dateRange)
+		XCTAssertEqual(dateToFind.addingTimeInterval(TimeInterval(models.timeslot.timeInMinutes * 60)).timeIntervalSinceReferenceDate, dateRange!.endDate.timeIntervalSinceReferenceDate, accuracy: 1)
+		
+		let dateComponent = Calendar.current.dateComponents([.year, .month, .day], from: dateToFind)
+		XCTAssertTrue(recieved.filter { dateRange -> Bool in
+			let components = Calendar.current.dateComponents([.year, .month, .day], from: dateRange.startDate)
+			return dateComponent == components
+		}.count == 1)
 	}
 }

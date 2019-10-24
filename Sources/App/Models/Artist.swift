@@ -33,4 +33,10 @@ extension Artist {
 	var workplace: Children<Artist, Workplace> {
 		return children(\.artistID)
 	}
+	var tattooSizes: Children<Artist, TattooSize> {
+		return children(\.artistID)
+	}
+	var bookings: Children<Artist, Booking> {
+		return children(\.artistID)
+	}
 }

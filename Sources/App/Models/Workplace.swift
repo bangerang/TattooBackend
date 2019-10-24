@@ -17,7 +17,8 @@ struct Location: Codable {
 	let longitude: Double
 	let latitude: Double
 }
-struct Time: Codable {
+
+struct Time: Codable, Equatable {
 	let hour: Int
 	let minute: Int
 	
@@ -37,6 +38,29 @@ extension Time {
 		let tuple = minutesToHoursMinutes(minutes: minutes)
 		return try Time(hour: hour + tuple.hours, minute: minute + tuple.leftMinutes)
 	}
+	func and(_ otherTime: Time) -> [Time] {
+		return [self, otherTime]
+	}
+}
+extension Array where Element == Time {
+	func containsTime(_ time: Time) -> Bool {
+		guard let first = first, let last = last else {
+			return false
+		}
+		return first.totalInMinutes-1..<last.totalInMinutes ~= time.totalInMinutes
+	}
+	func containsTime(_ times: [Time]) -> Bool {
+		guard let first = first, let last = last else {
+			return false
+		}
+		for time in times {
+			if first.totalInMinutes-1..<last.totalInMinutes ~= time.totalInMinutes {
+				return true
+			}
+		}
+		
+		return false
+	}
 }
 enum Day: String, Codable, ReflectionDecodable {
 	static func reflectDecoded() throws -> (Day, Day) {
@@ -51,10 +75,23 @@ enum Day: String, Codable, ReflectionDecodable {
 	case saturday
 	case sunday
 }
-struct WorkHour: Codable {
-	let day: Day
+struct ClosedTimeRange: Codable {
 	let start: Time
 	let end: Time
+	func contains(_ otherTime: Time) -> Bool {
+		return start.totalInMinutes...end.totalInMinutes ~= otherTime.totalInMinutes
+	}
+}
+struct WorkDay: Codable {
+	let day: Day
+	let workhours: ClosedTimeRange
+	let breaks: [ClosedTimeRange]
+	var start: Time {
+		workhours.start
+	}
+	var end: Time {
+		workhours.end
+	}
 }
 extension Date {
     func dayOfWeek() -> String? {
@@ -63,7 +100,6 @@ extension Date {
 		return dateFormatter.string(from: self).lowercased()
     }
 	func isBetweenDates(beginDate: Date, endDate: Date) -> Bool {
-		
 		if self.compare(beginDate) == .orderedAscending {
 			return false
 		}
@@ -73,12 +109,29 @@ extension Date {
 
 		return true
 	}
+	func isEqualToByMinuteGranularity(_ otherDate: Date) -> Bool {
+		return Calendar.current.isDate(otherDate, equalTo: self, toGranularity: .minute)
+	}
+	static func nextOccurrenceOfDay(_ day: Day) -> Date {
+		var date = Date()
+		let gregorian = Calendar(identifier: .gregorian)
+		while (date.dayOfWeek() != day.rawValue) {
+			var dateComponents = DateComponents()
+			dateComponents.day = 1
+			date = gregorian.date(byAdding: dateComponents, to: date)!
+		}
+		return date
+	}
+	func getTime() throws -> Time {
+		let components = Calendar.current.dateComponents([.hour, .minute], from: self)
+		return try Time(hour: components.hour!, minute: components.minute!)
+	}
 }
 struct Workplace: Codable {
 	var id: UUID?
 	var artistID: Artist.ID
 	var location: Location?
-	var workHours: [WorkHour]
+	var workDays: [WorkDay]
 	var numberOfDaysAllowedForBooking: Int
 }
 

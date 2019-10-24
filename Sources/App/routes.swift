@@ -11,7 +11,7 @@ public func routes(_ router: Router) throws {
 	let customerController = BaseModelController<Customer>(domain: ["customers"])
 	try router.register(collection: customerController)
 	
-	let bookingsController = BaseModelController<Booking>(domain: ["artists", "bookings"])
+	let bookingsController = BookingController(domain: ["artists", "bookings"])
 	try router.register(collection: bookingsController)
 	
 	let timeslotController = BaseModelController<Timeslot>(domain: ["artists", "timeslots"])
@@ -19,4 +19,7 @@ public func routes(_ router: Router) throws {
 	
 	let workplaceController = BaseModelController<Workplace>(domain: ["artists", "workplaces"])
 	try router.register(collection: workplaceController)
+	
+	let tattooSizesController = BaseModelController<TattooSize>(domain: ["artists", "tattoo-sizes"])
+	try router.register(collection: tattooSizesController)
 }

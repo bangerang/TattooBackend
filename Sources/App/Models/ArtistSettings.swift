@@ -14,7 +14,6 @@ import FluentPostgreSQL
 enum ArtistPropertySetting: Codable {
 	
 	case position([String])
-	case size([String])
 	case image(data: File)
 	case color(hasColor: Bool)
 }
@@ -22,7 +21,6 @@ extension ArtistPropertySetting {
 
     private enum CodingKeys: String, CodingKey {
 		case position
-		case size
 		case image
 		case color
     }
@@ -35,10 +33,6 @@ extension ArtistPropertySetting {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         if let value = try? values.decode([String].self, forKey: .position) {
 			self = .position(value)
-            return
-        }
-        if let value = try? values.decode([String].self, forKey: .size) {
-			self = .size(value)
             return
         }
         if let value = try? values.decode(File.self, forKey: .image) {
@@ -57,8 +51,6 @@ extension ArtistPropertySetting {
         switch self {
 		case .position(let positions):
 			try container.encode(positions, forKey: .position)
-		case .size(let sizes):
-			try container.encode(sizes, forKey: .size)
 		case .image(let data):
 			try container.encode(data, forKey: .image)
 		case .color(let hasColor):
@@ -73,8 +65,6 @@ extension ArtistPropertySetting: Equatable {
 			return color1 == color2
 		case (.position(let pos1), .position(let pos2)):
 			return pos1 == pos2
-		case (.size(let size1), .size(let size2)):
-			return size1 == size2
 		case (.image(let file1), .image(let file2)):
 			return file1.data == file2.data
 		default:

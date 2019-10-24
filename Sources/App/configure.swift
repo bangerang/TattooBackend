@@ -40,6 +40,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
 	
 	let database = PostgreSQLDatabase(config: databaseConfig)
 	databases.add(database: database, as: .psql)
+	
 	services.register(databases)
 	
 	/// Configure migrations
@@ -47,9 +48,12 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
 	migrations.add(model: Artist.self, database: .psql)
 	migrations.add(model: ArtistSettings.self, database: .psql)
 	migrations.add(model: Customer.self, database: .psql)
+	migrations.add(migration: BookingStatus.self, database: .psql)
 	migrations.add(model: Booking.self, database: .psql)
 	migrations.add(model: Timeslot.self, database: .psql)
 	migrations.add(model: Workplace.self, database: .psql)
+	migrations.add(model: TattooSize.self, database: .psql)
+	
 
 	services.register(migrations)
 	
