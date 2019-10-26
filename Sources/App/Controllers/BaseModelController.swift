@@ -10,23 +10,45 @@ import FluentPostgreSQL
 
 extension String: Error {}
 
+enum HTTPMethods {
+	case get
+	case put
+	case post
+	case delete
+}
 class BaseModelController<C: Content & PostgreSQLUUIDModel & Parameter>: RouteCollection {
 	
 	var route: Router!
 	var domain: [PathComponentsRepresentable]
+	var httpMethods = Set<HTTPMethods>()
+
 	
-	required init(domain: [PathComponentsRepresentable]) {
+	required init(domain: [PathComponentsRepresentable], httpMethods: Set<HTTPMethods>) {
 		self.domain = domain
+		self.httpMethods = httpMethods
+	}
+	
+	private func addRoutes() {
+		httpMethods.forEach {
+			switch $0 {
+			case .get:
+				route.get(use: getAllHandler)
+				route.get(C.parameter, use: getHandler)
+			case .put:
+				route.put(C.self, use: putHandler)
+			case .post:
+				route.post(C.self, use: createHandler)
+			case .delete:
+				route.delete(C.parameter, use: deleteHandler)
+			}
+		}
+
 	}
 	
 	func boot(router: Router) throws {
 		domain.insert("api", at: 0)
 		route = router.grouped(domain)
-		route.post(C.self, use: createHandler)
-		route.get(use: getAllHandler)
-		route.get(C.parameter, use: getHandler)
-		route.put(C.self, use: putHandler)
-		route.delete(C.parameter, use: deleteHandler)
+		addRoutes()
 	}
 	
 	func createHandler(_ req: Request, model: C) throws -> Future<C> {
