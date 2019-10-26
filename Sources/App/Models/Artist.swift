@@ -15,7 +15,6 @@ struct Artist: Codable {
 	var username: String
 	var email: String
 	var password: String
-
 }
 
 extension Artist: PostgreSQLUUIDModel {}
