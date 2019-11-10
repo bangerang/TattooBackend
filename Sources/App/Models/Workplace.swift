@@ -62,11 +62,7 @@ extension Array where Element == Time {
 		return false
 	}
 }
-enum Day: String, Codable, ReflectionDecodable {
-	static func reflectDecoded() throws -> (Day, Day) {
-		return (.monday, .tuesday)
-	}
-	
+enum Day: String, PostgreSQLEnum, PostgreSQLMigration {
 	case monday
 	case tuesday
 	case wednesday
@@ -82,17 +78,7 @@ struct ClosedTimeRange: Codable {
 		return start.totalInMinutes...end.totalInMinutes ~= otherTime.totalInMinutes
 	}
 }
-struct WorkDay: Codable {
-	let day: Day
-	let workhours: ClosedTimeRange
-	let breaks: [ClosedTimeRange]
-	var start: Time {
-		workhours.start
-	}
-	var end: Time {
-		workhours.end
-	}
-}
+
 extension Date {
     func dayOfWeek() -> String? {
         let dateFormatter = DateFormatter()
@@ -129,13 +115,43 @@ extension Date {
 }
 struct Workplace: Codable {
 	var id: UUID?
+	var name: String = ""
 	var artistID: Artist.ID
 	var location: Location?
-	var workDays: [WorkDay]
 	var numberOfDaysAllowedForBooking: Int
+}
+extension Workplace {
+	var workDays: Children<Workplace, WorkDay> {
+		return children(\.workPlaceID)
+	}
 }
 
 extension Workplace: PostgreSQLUUIDModel {}
 extension Workplace: Content {}
 extension Workplace: Migration {}
 extension Workplace: Parameter {}
+
+struct WorkDay: Codable {
+	var id: UUID?
+	let day: String
+	let workhours: ClosedTimeRange
+	let breaks: [ClosedTimeRange]
+	let workPlaceID: Workplace.ID
+	var start: Time {
+		workhours.start
+	}
+	var end: Time {
+		workhours.end
+	}
+}
+extension WorkDay {
+
+	init(id: UUID?, day: Day, workhours: ClosedTimeRange, breaks: [ClosedTimeRange], workPlaceID: Workplace.ID) {
+		self.init(id: id, day: day.rawValue, workhours: workhours, breaks: breaks, workPlaceID: workPlaceID)
+	}
+}
+
+extension WorkDay: PostgreSQLUUIDModel {}
+extension WorkDay: Content {}
+extension WorkDay: Migration {}
+extension WorkDay: Parameter {}

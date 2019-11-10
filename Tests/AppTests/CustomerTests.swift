@@ -48,4 +48,20 @@ class CustomerTests: ModelTests<Customer> {
 		customerToUpdate.email = "bar@hotmail.com"
 		return customerToUpdate
 	}
+	
+	func testCreateManyCustomers() throws {
+		let customer1 = Customer(email: "sjdoijs@sdkos.com")
+		let customer2 = Customer(email: "hej@sdkos.com")
+		_ = try app.getResponse(
+			to: getURI() + "/many",
+			method: .POST,
+			headers: ["Content-Type": "application/json"],
+			data: [customer1, customer2],
+			decodeTo: [Customer].self)
+		
+		let all = try app.getResponse(to: getURI(), decodeTo: [Customer].self)
+		
+		XCTAssertTrue(all.count == 2)
+		
+	}
 }

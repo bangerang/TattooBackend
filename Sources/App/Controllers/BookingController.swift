@@ -32,12 +32,12 @@ class BookingController: BaseModelController<Booking> {
 			
 			let endDate = try model.getEndDate(on: req)
 			
-			return dateAndBookings.and(endDate).flatMap { dateAndBookings, endDate in
+			return dateAndBookings.and(endDate).flatMap { dateAndBookings, modelEndDate in
 				try dateAndBookings.forEach { endDate, booking in
 					// FIX THIS!!
 					if (!model.startDate!.isEqualToByMinuteGranularity(endDate) &&
 						(model.startDate!.isBetweenDates(beginDate: booking.startDate!, endDate: endDate) ||
-						endDate.isBetweenDates(beginDate: booking.startDate!, endDate: endDate) ||
+							(modelEndDate.isBetweenDates(beginDate: booking.startDate!, endDate: endDate) && !modelEndDate.isEqualToByMinuteGranularity(booking.startDate!)) ||
 						model.startDate!.isEqualToByMinuteGranularity(booking.startDate!))) {
 						throw Abort(.conflict, reason: "Booking date conflicts with other date")
 					}

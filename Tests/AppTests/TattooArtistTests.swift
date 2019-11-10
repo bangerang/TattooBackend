@@ -16,17 +16,6 @@ let settingsStub: [ArtistPropertySetting] = [.position(["Elbow", "Arm", "Leg"]),
 											 .image(data: File(data: FileMock(),
 															   filename: "Foo"))]
 
-let workHours = [WorkDay(day: .monday, workhours: ClosedTimeRange(start: try! Time(hour: 8, minute: 00),
-																  end: try! Time(hour: 17, minute: 00)), breaks: [ClosedTimeRange(start: try! Time(hour: 12, minute: 00),
-																																  end: try! Time(hour: 13, minute: 00))]),
-				 WorkDay(day: .tuesday, workhours: ClosedTimeRange(start: try! Time(hour: 9, minute: 00),
-																   end: try! Time(hour: 18, minute: 00)), breaks: [ClosedTimeRange(start: try! Time(hour: 12, minute: 00),
-																																   end: try! Time(hour: 13, minute: 00))]),
-				 WorkDay(day: .thursday, workhours: ClosedTimeRange(start: try! Time(hour: 7, minute: 00),
-																	end: try! Time(hour: 16, minute: 00)), breaks: [ClosedTimeRange(start: try! Time(hour: 12, minute: 00),
-																																	end: try! Time(hour: 13, minute: 00))])
-]
-
 
 
 class TattooArtistTests: ModelTests<Artist> {
@@ -103,7 +92,9 @@ class TattooArtistTests: ModelTests<Artist> {
 		let artist = try Artist.create(model: artistStub, on: conn)
 		let timeslot = try Timeslot.create(model: Timeslot(artistID: artist.id!, title: "Foo", timeInMinutes: 120), on: conn)
 
-		_ = try Workplace.create(model: Workplace(artistID: artist.id!, workDays: workHours, numberOfDaysAllowedForBooking: 365), on: conn)
+		let workplace = try Workplace.create(model: Workplace(artistID: artist.id!, numberOfDaysAllowedForBooking: 365), on: conn)
+		
+		_ = try createWorkhours(with: workplace.id!, on: self.conn)
 		
 		let recieved = try app.getResponse(to: "\(getURI())\(artist.id!)/calender/\(timeslot.id!)", decodeTo: [ClosedDateRange].self)
 		let provider = CalenderProviderMock()
@@ -130,14 +121,15 @@ class TattooArtistTests: ModelTests<Artist> {
 		let artist = try Artist.create(model: artistStub, on: conn)
 		let timeslot = try Timeslot.create(model: Timeslot(artistID: artist.id!, title: "Foo", timeInMinutes: 120), on: conn)
 
-		_ = try Workplace.create(model: Workplace(artistID: artist.id!, workDays: workHours, numberOfDaysAllowedForBooking: 365), on: conn)
+		let workplace = try Workplace.create(model: Workplace(artistID: artist.id!, numberOfDaysAllowedForBooking: 365), on: conn)
 		
+		let workHours = try createWorkhours(with: workplace.id!, on: self.conn)
 		
 		let recieved = try app.getResponse(to: "\(getURI())\(artist.id!)/calender/\(timeslot.id!)", decodeTo: [ClosedDateRange].self)
 		
 		for dateRange in recieved {
-			let workhour = workHours.first(where: {$0.day.rawValue == dateRange.startDate.dayOfWeek()})!
-			let daysInDateRange = recieved.filter{$0.startDate.dayOfWeek() == workhour.day.rawValue}
+			let workhour = workHours.first(where: {$0.day == dateRange.startDate.dayOfWeek()})!
+			let daysInDateRange = recieved.filter{$0.startDate.dayOfWeek() == workhour.day}
 			for dayInDateRange in daysInDateRange {
 				let minuteStart = Calendar.current.component(.minute, from: dayInDateRange.startDate)
 				let hourStart = Calendar.current.component(.hour, from: dayInDateRange.startDate)

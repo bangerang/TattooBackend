@@ -10,6 +10,40 @@ import Vapor
 import XCTest
 import FluentPostgreSQL
 
+extension String {
+	static let monday = Day.monday.rawValue
+	static let tuesday = Day.tuesday.rawValue
+	static let wednesday = Day.wednesday.rawValue
+	static let thursday = Day.thursday.rawValue
+	static let friday = Day.friday.rawValue
+	static let saturday = Day.saturday.rawValue
+	static let sunday = Day.sunday.rawValue
+}
+
+func createWorkhours(with workplaceID: Workplace.ID, on connection: PostgreSQLConnection) throws -> [WorkDay] {
+	
+	
+	let monday = try WorkDay.create(model: WorkDay(day: .monday,
+												   workhours: ClosedTimeRange(start: try! Time(hour: 8, minute: 00), end: try! Time(hour: 17, minute: 00)),
+												   breaks: [ClosedTimeRange(start: try! Time(hour: 12, minute: 00), end: try! Time(hour: 13, minute: 00))],
+												   workPlaceID: workplaceID),
+									on: connection)
+	let tuesday = try WorkDay.create(model: WorkDay(day: .tuesday,
+													workhours: ClosedTimeRange(start: try! Time(hour: 9, minute: 00), end: try! Time(hour: 18, minute: 00)),
+													breaks: [ClosedTimeRange(start: try! Time(hour: 12, minute: 00), end: try! Time(hour: 13, minute: 00))],
+													workPlaceID: workplaceID),
+									 on: connection)
+	let thursday = try WorkDay.create(model: WorkDay(day: .thursday,
+													 workhours: ClosedTimeRange(start: try! Time(hour: 7, minute: 00),
+													 end: try! Time(hour: 16, minute: 00)), breaks: [ClosedTimeRange(start: try! Time(hour: 12, minute: 00),end: try! Time(hour: 13, minute: 00))],
+													 workPlaceID: workplaceID),
+									  on: connection)
+	
+	
+	return [monday, tuesday, thursday]
+	
+}
+
 class BookingsTests: ModelTests<Booking> {
 	
 	let testDate = Date()
@@ -21,7 +55,6 @@ class BookingsTests: ModelTests<Booking> {
 	lazy var customer: Customer = {
 		return try! Customer.create(model: customerStub, on: self.conn)
 	}()
-	
 	
 	lazy var bookingStub: Booking = {
 		return Booking(pickedSettings: settingsStub, state: .initial, artistID: artist.id!, customerID: customer.id!)
@@ -132,9 +165,12 @@ class BookingsTests: ModelTests<Booking> {
 		let timeslot = try! Timeslot.create(model: Timeslot(artistID: artist.id!, title: "Foo", timeInMinutes: 120), on: conn)
 		models.booking.timeSlotID = timeslot.id!
 		
-		let workplace = try Workplace.create(model: Workplace(artistID: artist.id!, workDays: workHours, numberOfDaysAllowedForBooking: 365), on: conn)
 		
-		let monday = workplace.workDays.first{$0.day == .monday}!
+		let workplace = try Workplace.create(model: Workplace(artistID: artist.id!, numberOfDaysAllowedForBooking: 365), on: conn)
+		
+		_ = try createWorkhours(with: workplace.id!, on: self.conn)
+		
+		let monday = try workplace.workDays.query(on: self.conn).all().wait().first{$0.day == .monday}!
 		
 		let startDate = Calendar.current.date(bySettingHour: monday.start.hour, minute: monday.start.minute, second: 0, of: Date.nextOccurrenceOfDay(.monday))!
 		
@@ -164,9 +200,11 @@ class BookingsTests: ModelTests<Booking> {
 		let timeslot = try! Timeslot.create(model: Timeslot(artistID: models.artist.id!, title: "Foo", timeInMinutes: 120), on: conn)
 		models.booking.timeSlotID = timeslot.id!
 		
-		let workplace = try Workplace.create(model: Workplace(artistID: models.artist.id!, workDays: workHours, numberOfDaysAllowedForBooking: 365), on: conn)
+		let workplace = try Workplace.create(model: Workplace(artistID: models.artist.id!, numberOfDaysAllowedForBooking: 365), on: conn)
 		
-		let monday = workplace.workDays.first{$0.day == .monday}!
+		_ = try createWorkhours(with: workplace.id!, on: self.conn)
+		
+		let monday = try workplace.workDays.query(on: self.conn).all().wait().first{$0.day == .monday}!
 		
 		let startDate = Calendar.current.date(bySettingHour: monday.start.hour, minute: monday.start.minute, second: 0, of: Date.nextOccurrenceOfDay(.monday))!
 		
@@ -196,9 +234,12 @@ class BookingsTests: ModelTests<Booking> {
 		let timeslot = try! Timeslot.create(model: Timeslot(artistID: models.artist.id!, title: "Foo", timeInMinutes: 120), on: conn)
 		models.booking.timeSlotID = timeslot.id!
 		
-		let workplace = try Workplace.create(model: Workplace(artistID: models.artist.id!, workDays: workHours, numberOfDaysAllowedForBooking: 365), on: conn)
+		let workplace = try Workplace.create(model: Workplace(artistID: models.artist.id!, numberOfDaysAllowedForBooking: 365), on: conn)
 		
-		let monday = workplace.workDays.first{$0.day == .monday}!
+		_ = try createWorkhours(with: workplace.id!, on: self.conn)
+		
+		let monday = try workplace.workDays.query(on: self.conn).all().wait().first{$0.day == .monday}!
+		
 		let start = try monday.end.time(byAddingMinutes: -models.timeslot.timeInMinutes)
 		
 		let startDate = Calendar.current.date(bySettingHour: start.hour, minute: start.minute, second: 0, of: Date.nextOccurrenceOfDay(.monday))!

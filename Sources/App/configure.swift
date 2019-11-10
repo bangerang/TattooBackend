@@ -53,6 +53,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
 	migrations.add(model: Timeslot.self, database: .psql)
 	migrations.add(model: Workplace.self, database: .psql)
 	migrations.add(model: TattooSize.self, database: .psql)
+	migrations.add(model: WorkDay.self, database: .psql)
 	
 
 	services.register(migrations)

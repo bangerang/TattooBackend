@@ -48,6 +48,9 @@ extension Booking {
 			return newPromise.futureResult
 		}
 	}
+	var customer: Parent<Booking, Customer> {
+		return parent(\.customerID)
+	}
 }
 
 extension Booking: PostgreSQLUUIDModel {}

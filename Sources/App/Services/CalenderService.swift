@@ -108,14 +108,21 @@ struct CalenderService: Service {
 					}.flatten(on: connection)
 				}
 				
-				return bookings.and(endDates).flatMap { bookings, endDates in
+				let workDays = try workplace.workDays.query(on: connection).all()
+				
+				
+				return bookings.and(endDates).and(workDays).flatMap { weirdTuple in
+					let bookings = weirdTuple.0.0
+					let endDates = weirdTuple.0.1
+					let workDays = weirdTuple.1
+
 					let bookingIDWithEndDates = zip(bookings, endDates).reduce(into: [UUID: Date]()) { (dict, arg1) in
 						let (booking, date) = arg1
 						return dict[booking.id!] = date
 					}
 					let calender = Calendar.current
 					for day in dates {
-						if let workDay = workplace.workDays.first(where: { $0.day.rawValue == day.dayOfWeek() }) {
+						if let workDay = workDays.first(where: { $0.day == day.dayOfWeek() }) {
 							let breaks = workDay.breaks.map{$0.start}
 							
 							let bookingsSameDay = bookings.filter{ Calendar.current.isDate(day, equalTo: $0.startDate!, toGranularity: .day) }

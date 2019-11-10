@@ -31,6 +31,7 @@ class ArtistController: BaseModelController<Artist> {
 		tattooSizes.get(use: getAvailableTattooSizesHandler)
 		let bookings = route.grouped(Artist.parameter, "bookings")
 		bookings.get(use: getBookingsHandler)
+		
 	}
 	
 	func getSettingsHandler(_ req: Request) throws -> Future<[ArtistSettings]> {
@@ -46,7 +47,6 @@ class ArtistController: BaseModelController<Artist> {
 	}
 	
 	func getAvailableEventsHandler(_ req: Request) throws -> Future<[ClosedDateRange]> {
-		
 		return try req.parameters.next(Artist.self).flatMap(to: [ClosedDateRange].self) { artist in
 			return try req.parameters.next(Timeslot.self).flatMap(to: [ClosedDateRange].self) { timeslot in
 				let calenderService = try req.make(CalenderService.self)
@@ -68,4 +68,5 @@ class ArtistController: BaseModelController<Artist> {
 			try artist.bookings.query(on: req).all()
 		}
 	}
+
 }

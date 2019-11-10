@@ -38,6 +38,8 @@ class BaseModelController<C: Content & PostgreSQLUUIDModel & Parameter>: RouteCo
 				route.put(C.self, use: putHandler)
 			case .post:
 				route.post(C.self, use: createHandler)
+				let many = route.grouped("many")
+				many.post([C].self, use: createHandlerMany)
 			case .delete:
 				route.delete(C.parameter, use: deleteHandler)
 			}
@@ -53,6 +55,12 @@ class BaseModelController<C: Content & PostgreSQLUUIDModel & Parameter>: RouteCo
 	
 	func createHandler(_ req: Request, model: C) throws -> Future<C> {
 		return model.save(on: req)
+	}
+	
+	func createHandlerMany(_ req: Request, models: [C]) throws -> Future<[C]> {
+		return models.map {
+			$0.save(on: req)
+		}.flatten(on: req)
 	}
 	
 	func getAllHandler(_ req: Request) throws -> Future<[C]> {
